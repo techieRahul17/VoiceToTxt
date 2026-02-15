@@ -1,6 +1,6 @@
-# voicetotxtvsr
+# VoiceToTxt
+Flutter app implementing conversion of voice to text
 
-A new Flutter project.
 
 ## Getting Started
 

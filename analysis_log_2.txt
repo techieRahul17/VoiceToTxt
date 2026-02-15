@@ -1,0 +1,14 @@
+Analyzing voicetotxtvsr...                                      
+
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:178:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:181:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:197:36 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:200:41 - deprecated_member_use
+   info - Unnecessary use of multiple underscores - lib\voice_flow_screen.dart:269:49 - unnecessary_underscores
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:289:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:333:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:336:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:390:45 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:426:41 - deprecated_member_use
+
+10 issues found. (ran in 6.6s)
