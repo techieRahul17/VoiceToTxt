@@ -1,0 +1,13 @@
+Analyzing voicetotxtvsr...                                      
+
+  error - Expected an identifier - lib\voice_flow_screen.dart:178:56 - missing_identifier
+  error - Expected an identifier - lib\voice_flow_screen.dart:181:61 - missing_identifier
+  error - Expected an identifier - lib\voice_flow_screen.dart:197:54 - missing_identifier
+  error - Expected an identifier - lib\voice_flow_screen.dart:200:59 - missing_identifier
+  error - Expected an identifier - lib\voice_flow_screen.dart:289:59 - missing_identifier
+  error - Expected an identifier - lib\voice_flow_screen.dart:333:51 - missing_identifier
+  error - Expected an identifier - lib\voice_flow_screen.dart:336:53 - missing_identifier
+  error - Expected an identifier - lib\voice_flow_screen.dart:390:63 - missing_identifier
+  error - Expected an identifier - lib\voice_flow_screen.dart:426:59 - missing_identifier
+
+9 issues found. (ran in 8.0s)

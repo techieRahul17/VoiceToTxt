@@ -1,0 +1,18 @@
+Analyzing voicetotxtvsr...                                      
+
+   info - The private field _savedItems could be 'final' - lib\voice_flow_screen.dart:36:19 - prefer_final_fields
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:178:38 - deprecated_member_use
+  error - The named parameter 'blurRadius' isn't defined - lib\voice_flow_screen.dart:179:17 - undefined_named_parameter
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:191:36 - deprecated_member_use
+  error - The named parameter 'blurRadius' isn't defined - lib\voice_flow_screen.dart:192:17 - undefined_named_parameter
+   info - Unnecessary use of multiple underscores - lib\voice_flow_screen.dart:257:49 - unnecessary_underscores
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:277:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:321:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:324:35 - deprecated_member_use
+warning - This default clause is covered by the previous cases - lib\voice_flow_screen.dart:347:7 - unreachable_switch_default
+warning - This default clause is covered by the previous cases - lib\voice_flow_screen.dart:359:7 - unreachable_switch_default
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:380:45 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:416:41 - deprecated_member_use
+  error - The name 'MyApp' isn't a class - test\widget_test.dart:16:35 - creation_with_non_type
+
+14 issues found. (ran in 6.9s)

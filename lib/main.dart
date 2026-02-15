@@ -1,93 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:speech_to_text/speech_to_text.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'voice_flow_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const VoiceFlowApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class VoiceFlowApp extends StatelessWidget {
+  const VoiceFlowApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
+      title: 'VoiceFlow',
       debugShowCheckedModeBanner: false,
-      home: VoiceScreen(),
-    );
-  }
-}
-
-class VoiceScreen extends StatefulWidget {
-  const VoiceScreen({super.key});
-
-  @override
-  State<VoiceScreen> createState() => _VoiceScreenState();
-}
-
-class _VoiceScreenState extends State<VoiceScreen> {
-  final SpeechToText _speech = SpeechToText();
-  bool _isListening = false;
-  String _text = "Press the mic and start speaking";
-
-  @override
-  void initState() {
-    super.initState();
-    _initSpeech();
-  }
-
-  void _initSpeech() async {
-    await _speech.initialize(
-      onStatus: (status) => print("Status: $status"),
-      onError: (error) => print("Error: $error"),
-    );
-  }
-
-  void _startListening() async {
-    await _speech.listen(
-      onResult: (result) {
-        setState(() {
-          _text = result.recognizedWords;
-        });
-      },
-    );
-
-    setState(() {
-      _isListening = true;
-    });
-  }
-
-  void _stopListening() async {
-    await _speech.stop();
-    setState(() {
-      _isListening = false;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Voice to Text Demo"),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              _text,
-              style: const TextStyle(fontSize: 22),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 40),
-            FloatingActionButton(
-              onPressed: _isListening ? _stopListening : _startListening,
-              child: Icon(_isListening ? Icons.mic_off : Icons.mic, size: 30),
-            ),
-          ],
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF121212),
+        primarySwatch: Colors.blue,
+        textTheme: GoogleFonts.poppinsTextTheme(
+          Theme.of(context).textTheme.apply(bodyColor: Colors.white),
         ),
+        useMaterial3: true,
       ),
+      home: const VoiceFlowScreen(),
     );
   }
 }
