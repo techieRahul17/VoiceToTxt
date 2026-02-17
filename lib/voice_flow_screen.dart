@@ -6,18 +6,20 @@ import 'dart:ui';
 
 // --- Models ---
 
-enum ItemCategory { reminder, todo, note }
+enum ItemType { reminder, todo, note }
 
 class SavedItem {
   final String id;
   final String text;
-  final ItemCategory category;
+  final ItemType type;
+  final String category;
   final DateTime timestamp;
   bool isCompleted;
 
   SavedItem({
     required this.id,
     required this.text,
+    required this.type,
     required this.category,
     required this.timestamp,
     this.isCompleted = false,
@@ -39,6 +41,8 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
   String _currentText = "";
   final List<SavedItem> _savedItems = [];
   final TextEditingController _manualInputController = TextEditingController();
+  final List<String> _userCategories = ["General", "Skills", "College", "Work", "Personal"];
+  final TextEditingController _newCategoryController = TextEditingController();
   
   // Animation controllers/effects are handled via flutter_animate, 
   // but we keep a simple one for the mic pulse if needed, 
@@ -100,13 +104,16 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
     });
   }
 
-  void _saveReceivedText(String text, {ItemCategory? manualCategory}) {
+  void _saveReceivedText(String text, {ItemType? manualType, String? manualCategory}) {
     if (text.trim().isEmpty) return;
 
-    final category = manualCategory ?? _detectIntent(text);
+    final type = manualType ?? _detectIntent(text);
+    final category = manualCategory ?? "General";
+
     final newItem = SavedItem(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       text: text,
+      type: type,
       category: category,
       timestamp: DateTime.now(),
     );
@@ -117,14 +124,14 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
     });
     
     // Simulate storage
-    debugPrint("Saved: ${newItem.text}");
+    debugPrint("Saved: ${newItem.text} in ${newItem.category}");
   }
 
-  ItemCategory _detectIntent(String text) {
+  ItemType _detectIntent(String text) {
     final lower = text.toLowerCase();
-    if (lower.contains("remind") || lower.contains("remember")) return ItemCategory.reminder;
-    if (lower.contains("todo") || lower.contains("task") || lower.contains("buy") || lower.contains("fix")) return ItemCategory.todo;
-    return ItemCategory.note;
+    if (lower.contains("remind") || lower.contains("remember")) return ItemType.reminder;
+    if (lower.contains("todo") || lower.contains("task") || lower.contains("buy") || lower.contains("fix")) return ItemType.todo;
+    return ItemType.note;
   }
 
   void _deleteItem(String id) {
@@ -143,8 +150,11 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
   }
 
   void _showManualInputModal() {
-    ItemCategory selectedCategory = ItemCategory.note;
+    ItemType selectedType = ItemType.note;
+    String selectedCategory = _userCategories.first;
+    bool isAddingNewCategory = false;
     _manualInputController.clear();
+    _newCategoryController.clear();
 
     showModalBottomSheet(
       context: context,
@@ -186,36 +196,118 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
                       minLines: 1,
                     ),
                     const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        _buildCategoryChip(
-                          isSelected: selectedCategory == ItemCategory.note,
-                          label: "Note",
-                          color: Colors.blueAccent,
-                          onTap: () => setModalState(() => selectedCategory = ItemCategory.note),
-                        ),
-                        const SizedBox(width: 10),
-                        _buildCategoryChip(
-                          isSelected: selectedCategory == ItemCategory.todo,
-                          label: "Todo",
-                          color: Colors.greenAccent,
-                          onTap: () => setModalState(() => selectedCategory = ItemCategory.todo),
-                        ),
-                        const SizedBox(width: 10),
-                        _buildCategoryChip(
-                          isSelected: selectedCategory == ItemCategory.reminder,
-                          label: "Reminder",
-                          color: Colors.purpleAccent,
-                          onTap: () => setModalState(() => selectedCategory = ItemCategory.reminder),
-                        ),
-                      ],
+                    // Type Selection
+                    Text("Type", style: GoogleFonts.outfit(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildTypeChip(
+                            isSelected: selectedType == ItemType.note,
+                            label: "Note",
+                            color: Colors.blueAccent,
+                            onTap: () => setModalState(() => selectedType = ItemType.note),
+                          ),
+                          const SizedBox(width: 10),
+                          _buildTypeChip(
+                            isSelected: selectedType == ItemType.todo,
+                            label: "Todo",
+                            color: Colors.greenAccent,
+                            onTap: () => setModalState(() => selectedType = ItemType.todo),
+                          ),
+                          const SizedBox(width: 10),
+                          _buildTypeChip(
+                            isSelected: selectedType == ItemType.reminder,
+                            label: "Reminder",
+                            color: Colors.purpleAccent,
+                            onTap: () => setModalState(() => selectedType = ItemType.reminder),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 20),
+                    // Category Selection
+                    Text("Category", style: GoogleFonts.outfit(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+                    if (isAddingNewCategory)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _newCategoryController,
+                              style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
+                              decoration: InputDecoration(
+                                hintText: "Enter new category name",
+                                hintStyle: GoogleFonts.outfit(color: Colors.white38),
+                                isDense: true,
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white24)),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white24)),
+                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.blueAccent)),
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.check, color: Colors.greenAccent),
+                            onPressed: () {
+                              if (_newCategoryController.text.trim().isNotEmpty) {
+                                setState(() {
+                                  _userCategories.add(_newCategoryController.text.trim());
+                                  selectedCategory = _newCategoryController.text.trim();
+                                });
+                                setModalState(() {
+                                  isAddingNewCategory = false;
+                                });
+                              }
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.redAccent),
+                            onPressed: () => setModalState(() => isAddingNewCategory = false),
+                          ),
+                        ],
+                      )
+                    else
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            ..._userCategories.map((cat) => Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: _buildCategoryChip(
+                                isSelected: selectedCategory == cat,
+                                label: cat,
+                                onTap: () => setModalState(() => selectedCategory = cat),
+                              ),
+                            )),
+                            GestureDetector(
+                              onTap: () => setModalState(() => isAddingNewCategory = true),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.05),
+                                  border: Border.all(color: Colors.white24),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.add, size: 16, color: Colors.white70),
+                                    const SizedBox(width: 4),
+                                    Text("Add", style: GoogleFonts.outfit(color: Colors.white70, fontSize: 12)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    
+                    const SizedBox(height: 30),
                     Align(
                       alignment: Alignment.centerRight,
                       child: GestureDetector(
                         onTap: () {
-                          _saveReceivedText(_manualInputController.text, manualCategory: selectedCategory);
+                          _saveReceivedText(_manualInputController.text, manualType: selectedType, manualCategory: selectedCategory);
                           Navigator.pop(context);
                         },
                         child: Container(
@@ -239,7 +331,7 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
     );
   }
 
-  Widget _buildCategoryChip({
+  Widget _buildTypeChip({
     required bool isSelected,
     required String label,
     required Color color,
@@ -266,24 +358,26 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
       ).animate(target: isSelected ? 1 : 0).scale(begin: const Offset(1, 1), end: const Offset(1.05, 1.05)),
     );
   }
-  
-  // Correction for the chip logic above:
-  // Since `selectedCategory` needs to be updated, we can just do:
-  Widget _buildCategoryChipReal(StateSetter setModalState, ItemCategory Function() getCat, Function(ItemCategory) setCat, ItemCategory target, String label, Color color) {
-    bool isSelected = getCat() == target;
+
+  Widget _buildCategoryChip({
+    required bool isSelected,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
-      onTap: () => setModalState(() => setCat(target)),
-      child: Container( // Removed AnimatedContainer for simpler state reconstruction
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.2) : Colors.white.withOpacity(0.05),
-          border: Border.all(color: isSelected ? color : Colors.transparent),
+          color: isSelected ? Colors.white.withOpacity(0.2) : Colors.white.withOpacity(0.05),
+          border: Border.all(color: isSelected ? Colors.white70 : Colors.transparent),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           label,
           style: GoogleFonts.outfit(
-            color: isSelected ? color : Colors.white60,
+            color: isSelected ? Colors.white : Colors.white60,
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
@@ -291,6 +385,10 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
       ),
     );
   }
+  
+  // Correction for the chip logic above:
+  // Since `selectedCategory` needs to be updated, we can just do:
+
 
 
   @override
@@ -386,43 +484,74 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
                 
                 const SizedBox(height: 25),
 
-                // List Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text("YOUR FLOW", style: GoogleFonts.outfit(color: Colors.white54, fontSize: 12, letterSpacing: 2, fontWeight: FontWeight.w800)),
-                  ),
-                ),
-                
+
                 const SizedBox(height: 15),
 
                 // List
                 Expanded(
                   child: _savedItems.isEmpty
                       ? Center(child: Text("No items yet.", style: GoogleFonts.outfit(color: Colors.white24)))
-                      : ListView.separated(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(20, 10, 20, 80), // Added bottom padding for FAB
                           physics: const BouncingScrollPhysics(),
-                          itemCount: _savedItems.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final item = _savedItems[index];
-                            return Dismissible(
-                              key: Key(item.id),
-                              direction: DismissDirection.endToStart,
-                              onDismissed: (_) => _deleteItem(item.id),
-                              background: Container(
-                                alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.only(right: 20),
-                                decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
-                                child: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                              ),
-                              child: SavedItemCard(
-                                item: item,
-                                onTap: () => _toggleItemCompletion(item.id),
-                              ),
-                            ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.2, end: 0);
+                          itemCount: _userCategories.length,
+                          itemBuilder: (context, catIndex) {
+                            final category = _userCategories[catIndex];
+                            final itemsInCategory = _savedItems.where((item) => item.category == category).toList();
+                            
+                            if (itemsInCategory.isEmpty) return const SizedBox.shrink();
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 12, top: 8),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 4, 
+                                        height: 14, 
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF6366F1), 
+                                          borderRadius: BorderRadius.circular(2)
+                                        )
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        category.toUpperCase(),
+                                        style: GoogleFonts.outfit(
+                                          color: Colors.white54,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 1.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                ...itemsInCategory.map((item) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: Dismissible(
+                                      key: Key(item.id),
+                                      direction: DismissDirection.endToStart,
+                                      onDismissed: (_) => _deleteItem(item.id),
+                                      background: Container(
+                                        alignment: Alignment.centerRight,
+                                        padding: const EdgeInsets.only(right: 20),
+                                        decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
+                                        child: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                      ),
+                                      child: SavedItemCard(
+                                        item: item,
+                                        onTap: () => _toggleItemCompletion(item.id),
+                                      ),
+                                    ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.2, end: 0),
+                                  );
+                                }),
+                                const SizedBox(height: 10),
+                              ],
+                            );
                           },
                         ),
                 ),
@@ -526,18 +655,18 @@ class SavedItemCard extends StatelessWidget {
   const SavedItemCard({super.key, required this.item, required this.onTap});
 
   Color _getColor() {
-    switch (item.category) {
-      case ItemCategory.reminder: return const Color(0xFFA855F7); // Purple
-      case ItemCategory.todo: return const Color(0xFF22D3EE); // Cyan
-      case ItemCategory.note: return const Color(0xFFF472B6); // Pink
+    switch (item.type) {
+      case ItemType.reminder: return const Color(0xFFA855F7); // Purple
+      case ItemType.todo: return const Color(0xFF22D3EE); // Cyan
+      case ItemType.note: return const Color(0xFFF472B6); // Pink
     }
   }
 
   IconData _getIcon() {
-    switch (item.category) {
-      case ItemCategory.reminder: return Icons.alarm;
-      case ItemCategory.todo: return Icons.check_circle_outline;
-      case ItemCategory.note: return Icons.sticky_note_2_outlined;
+    switch (item.type) {
+      case ItemType.reminder: return Icons.alarm;
+      case ItemType.todo: return Icons.check_circle_outline;
+      case ItemType.note: return Icons.sticky_note_2_outlined;
     }
   }
 
@@ -563,6 +692,7 @@ class SavedItemCard extends StatelessWidget {
             
             const SizedBox(width: 16),
             
+
             // Text Content
             Expanded(
               child: Column(
@@ -579,7 +709,7 @@ class SavedItemCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "${item.category.name.toUpperCase()} • ${item.timestamp.hour}:${item.timestamp.minute.toString().padLeft(2, '0')}",
+                    "${item.type.name.toUpperCase()} • ${item.timestamp.hour}:${item.timestamp.minute.toString().padLeft(2, '0')}",
                     style: GoogleFonts.outfit(
                       color: Colors.white38,
                       fontSize: 10,
@@ -592,7 +722,7 @@ class SavedItemCard extends StatelessWidget {
             ),
             
             // Checkbox (Custom) -> Only for Todo maybe? Or all for "Done" status
-            if (item.category == ItemCategory.todo) 
+            if (item.type == ItemType.todo) 
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 width: 24,
