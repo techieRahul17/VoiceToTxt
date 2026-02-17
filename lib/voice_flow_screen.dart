@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:voicetotxtvsr/services/notification_service.dart';
+import 'package:intl/intl.dart';
 import 'dart:ui';
 
 // --- Models ---
@@ -14,6 +16,8 @@ class SavedItem {
   final ItemType type;
   final String category;
   final DateTime timestamp;
+  final DateTime? deadline;
+  final String? audioPath;
   bool isCompleted;
 
   SavedItem({
@@ -22,6 +26,8 @@ class SavedItem {
     required this.type,
     required this.category,
     required this.timestamp,
+    this.deadline,
+    this.audioPath,
     this.isCompleted = false,
   });
 }
@@ -52,6 +58,8 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
   void initState() {
     super.initState();
     _initSpeech();
+    NotificationService().init();
+    NotificationService().requestPermissions();
   }
 
   @override
@@ -104,7 +112,7 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
     });
   }
 
-  void _saveReceivedText(String text, {ItemType? manualType, String? manualCategory}) {
+  void _saveReceivedText(String text, {ItemType? manualType, String? manualCategory, DateTime? manualDeadline}) {
     if (text.trim().isEmpty) return;
 
     final type = manualType ?? _detectIntent(text);
@@ -116,7 +124,18 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
       type: type,
       category: category,
       timestamp: DateTime.now(),
+      deadline: manualDeadline,
+      audioPath: null, // Basic add for now, will update manual save next
     );
+    
+    if (manualDeadline != null) {
+      NotificationService().scheduleNotification(
+        id: newItem.id.hashCode,
+        title: "Reminder: ${newItem.category}",
+        body: newItem.text,
+        scheduledDate: manualDeadline,
+      );
+    }
 
     setState(() {
       _savedItems.insert(0, newItem);
@@ -135,6 +154,7 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
   }
 
   void _deleteItem(String id) {
+    NotificationService().cancelNotification(id.hashCode);
     setState(() {
       _savedItems.removeWhere((item) => item.id == id);
     });
@@ -153,6 +173,8 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
     ItemType selectedType = ItemType.note;
     String selectedCategory = _userCategories.first;
     bool isAddingNewCategory = false;
+    DateTime? selectedDeadline;
+    
     _manualInputController.clear();
     _newCategoryController.clear();
 
@@ -300,14 +322,105 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
                             ),
                           ],
                         ),
-                      ),
+                        ),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // Deadline Picker
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("Deadline", style: GoogleFonts.outfit(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
+                        GestureDetector(
+                          onTap: () async {
+                            final date = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime(2100),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: ThemeData.dark().copyWith(
+                                    colorScheme: const ColorScheme.dark(
+                                      primary: Color(0xFF6366F1),
+                                      onPrimary: Colors.white,
+                                      surface: Color(0xFF1E1E1E),
+                                      onSurface: Colors.white,
+                                    ),
+                                    dialogBackgroundColor: const Color(0xFF1E1E1E),
+                                  ),
+                                  child: child!,
+                                );
+                              }
+                            );
+                            
+                            if (date != null) {
+                              final time = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay.now(),
+                                builder: (context, child) {
+                                   return Theme(
+                                     data: ThemeData.dark().copyWith(
+                                       colorScheme: const ColorScheme.dark(
+                                         primary: Color(0xFF6366F1),
+                                         onPrimary: Colors.white,
+                                         surface: Color(0xFF1E1E1E),
+                                         onSurface: Colors.white,
+                                       ),
+                                     ),
+                                     child: child!,
+                                   );
+                                }
+                              );
+                              
+                              if (time != null) {
+                                setModalState(() {
+                                  selectedDeadline = DateTime(
+                                    date.year, date.month, date.day, time.hour, time.minute
+                                  );
+                                });
+                              }
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: selectedDeadline != null ? const Color(0xFF6366F1).withOpacity(0.2) : Colors.white.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: selectedDeadline != null ? const Color(0xFF6366F1) : Colors.white24),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.calendar_today, size: 14, color: selectedDeadline != null ? const Color(0xFF6366F1) : Colors.white60),
+                                const SizedBox(width: 8),
+                                Text(
+                                  selectedDeadline != null 
+                                    ? DateFormat('MMM d, h:mm a').format(selectedDeadline!)
+                                    : "Set Date & Time",
+                                  style: GoogleFonts.outfit(
+                                    color: selectedDeadline != null ? const Color(0xFF6366F1) : Colors.white60,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     
                     const SizedBox(height: 30),
                     Align(
                       alignment: Alignment.centerRight,
                       child: GestureDetector(
                         onTap: () {
-                          _saveReceivedText(_manualInputController.text, manualType: selectedType, manualCategory: selectedCategory);
+                          _saveReceivedText(
+                            _manualInputController.text, 
+                            manualType: selectedType, 
+                            manualCategory: selectedCategory,
+                            manualDeadline: selectedDeadline
+                          );
                           Navigator.pop(context);
                         },
                         child: Container(
@@ -717,6 +830,24 @@ class SavedItemCard extends StatelessWidget {
                       letterSpacing: 1,
                     ),
                   ),
+                  if (item.deadline != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Row(
+                        children: [
+                          Icon(Icons.access_time, size: 10, color: item.deadline!.isBefore(DateTime.now()) ? Colors.redAccent : const Color(0xFF6366F1)),
+                          const SizedBox(width: 4),
+                          Text(
+                            "Due: ${DateFormat('MMM d, h:mm a').format(item.deadline!)}",
+                            style: GoogleFonts.outfit(
+                              color: item.deadline!.isBefore(DateTime.now()) ? Colors.redAccent : const Color(0xFF6366F1),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),

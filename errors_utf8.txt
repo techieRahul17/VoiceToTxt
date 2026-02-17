@@ -1,0 +1,70 @@
+﻿Resolving dependencies...
+Downloading packages...
+  meta 1.17.0 (1.18.1 available)
+Got dependencies!
+1 package has newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing voicetotxtvsr...                                      
+
+  error - The named parameter 'settings' is required, but there's no corresponding argument - lib\services\notification_service.dart:43:43 - missing_required_argument
+  error - The named parameter 'initializationSettings' isn't defined - lib\services\notification_service.dart:44:7 - undefined_named_parameter
+  error - The named parameter 'uiLocalNotificationDateInterpretation' isn't defined - lib\services\notification_service.dart:83:9 - undefined_named_parameter
+  error - Undefined name 'UILocalNotificationDateInterpretation' - lib\services\notification_service.dart:84:13 - undefined_identifier
+  error - Missing concrete implementation of 'State.build' - lib\voice_flow_screen.dart:42:7 - non_abstract_class_inherits_abstract_member
+warning - The declaration '_startListening' isn't referenced - lib\voice_flow_screen.dart:80:8 - unused_element
+warning - The declaration '_deleteItem' isn't referenced - lib\voice_flow_screen.dart:153:8 - unused_element
+warning - The declaration '_toggleItemCompletion' isn't referenced - lib\voice_flow_screen.dart:160:8 - unused_element
+warning - The declaration '_showManualInputModal' isn't referenced - lib\voice_flow_screen.dart:169:8 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:195:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:197:70 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:307:55 - deprecated_member_use
+  error - Expected to find ']' - lib\voice_flow_screen.dart:323:23 - expected_token
+  error - Too many positional arguments: 0 expected, but 4 found - lib\voice_flow_screen.dart:325:21 - extra_positional_arguments_could_be_named
+   info - 'dialogBackgroundColor' is deprecated and shouldn't be used. Use DialogThemeData.backgroundColor instead. This feature was deprecated after v3.27.0-0.1.pre - lib\voice_flow_screen.dart:348:37 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\voice_flow_screen.dart:357:33 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:386:89 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:386:121 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:429:82 - deprecated_member_use
+  error - Expected to find ')' - lib\voice_flow_screen.dart:435:19 - expected_token
+  error - Expected to find ';' - lib\voice_flow_screen.dart:437:15 - expected_token
+  error - Expected an identifier - lib\voice_flow_screen.dart:437:16 - missing_identifier
+  error - Unexpected text ';' - lib\voice_flow_screen.dart:437:16 - unexpected_token
+  error - Expected to find '}' - lib\voice_flow_screen.dart:438:13 - expected_token
+  error - Expected a class member - lib\voice_flow_screen.dart:441:8 - expected_class_member
+  error - Expected a class member - lib\voice_flow_screen.dart:442:5 - expected_class_member
+  error - Expected a class member - lib\voice_flow_screen.dart:442:6 - expected_class_member
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:457:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:457:69 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:484:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:484:76 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:520:75 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:532:75 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:559:71 - deprecated_member_use
+  error - Undefined name '_currentText' - lib\voice_flow_screen.dart:573:32 - undefined_identifier
+  error - Undefined name '_isListening' - lib\voice_flow_screen.dart:573:57 - undefined_identifier
+  error - Undefined name '_isListening' - lib\voice_flow_screen.dart:583:33 - undefined_identifier
+  error - Undefined name '_currentText' - lib\voice_flow_screen.dart:583:49 - undefined_identifier
+  error - Undefined name '_currentText' - lib\voice_flow_screen.dart:583:89 - undefined_identifier
+  error - Undefined name '_savedItems' - lib\voice_flow_screen.dart:603:26 - undefined_identifier
+  error - Undefined name '_userCategories' - lib\voice_flow_screen.dart:608:38 - undefined_identifier
+  error - Undefined name '_userCategories' - lib\voice_flow_screen.dart:610:46 - undefined_identifier
+  error - Undefined name '_savedItems' - lib\voice_flow_screen.dart:611:53 - undefined_identifier
+  error - The function '_deleteItem' isn't defined - lib\voice_flow_screen.dart:649:59 - undefined_function
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:653:91 - deprecated_member_use
+  error - The function '_toggleItemCompletion' isn't defined - lib\voice_flow_screen.dart:658:54 - undefined_function
+  error - Undefined name '_showManualInputModal' - lib\voice_flow_screen.dart:684:30 - undefined_identifier
+  error - Undefined name '_isListening' - lib\voice_flow_screen.dart:695:26 - undefined_identifier
+  error - Undefined name '_stopListening' - lib\voice_flow_screen.dart:695:41 - undefined_identifier
+  error - Undefined name '_startListening' - lib\voice_flow_screen.dart:695:58 - undefined_identifier
+  error - Undefined name '_isListening' - lib\voice_flow_screen.dart:702:33 - undefined_identifier
+  error - Undefined name '_isListening' - lib\voice_flow_screen.dart:707:35 - undefined_identifier
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:707:74 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:707:117 - deprecated_member_use
+  error - Undefined name '_isListening' - lib\voice_flow_screen.dart:714:23 - undefined_identifier
+  error - Undefined name '_isListening' - lib\voice_flow_screen.dart:719:35 - undefined_identifier
+  error - Expected a method, getter, setter or operator declaration - lib\voice_flow_screen.dart:732:1 - expected_executable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:751:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:753:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:798:30 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\voice_flow_screen.dart:815:43 - deprecated_member_use
+
