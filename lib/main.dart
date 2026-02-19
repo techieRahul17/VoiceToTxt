@@ -16,9 +16,9 @@ class VoiceFlowApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        primarySwatch: Colors.blue,
-        textTheme: GoogleFonts.poppinsTextTheme(
+        scaffoldBackgroundColor: const Color(0xFF050505),
+        primarySwatch: Colors.indigo,
+        textTheme: GoogleFonts.outfitTextTheme(
           Theme.of(context).textTheme.apply(bodyColor: Colors.white),
         ),
         useMaterial3: true,
