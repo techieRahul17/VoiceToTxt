@@ -62,28 +62,54 @@ class NotificationService {
     required String title,
     required String body,
     required DateTime scheduledDate,
+    String? audioPath,
   }) async {
     try {
+      // Create a unique channel for the specific sound if provided
+      // Android 8.0+ requires channels to be created with the sound upfront.
+      // If audioPath is provided, we create a channel specifically for it.
+      String channelId = 'voice_flow_channel_default';
+      String channelName = 'VoiceFlow Reminders';
+      
+      AndroidNotificationDetails androidDetails;
+
+      if (audioPath != null && audioPath.isNotEmpty) {
+        // Use a hash of the path to generate a consistent channel ID for this sound
+        final soundHash = audioPath.hashCode;
+        channelId = 'voice_flow_channel_$soundHash';
+        channelName = 'VoiceFlow Custom Sound';
+        
+        androidDetails = AndroidNotificationDetails(
+          channelId,
+          channelName,
+          channelDescription: 'Channel for VoiceFlow activity reminders with custom sound',
+          importance: Importance.max,
+          priority: Priority.high,
+          sound: UriAndroidNotificationSound(audioPath),
+          audioAttributesUsage: AudioAttributesUsage.alarm,
+        );
+      } else {
+        androidDetails = const AndroidNotificationDetails(
+          'voice_flow_channel',
+          'VoiceFlow Reminders',
+          channelDescription: 'Channel for VoiceFlow activity reminders',
+          importance: Importance.max,
+          priority: Priority.high,
+        );
+      }
+
       await flutterLocalNotificationsPlugin.zonedSchedule(
         id: id,
         title: title,
         body: body,
         scheduledDate: tz.TZDateTime.from(scheduledDate, tz.local),
-        notificationDetails: const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'voice_flow_channel',
-            'VoiceFlow Reminders',
-            channelDescription: 'Channel for VoiceFlow activity reminders',
-            importance: Importance.max,
-            priority: Priority.high,
-          ),
-          iOS: DarwinNotificationDetails(),
+        notificationDetails: NotificationDetails(
+          android: androidDetails,
+          iOS: const DarwinNotificationDetails(),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        // uiLocalNotificationDateInterpretation:
-        //    UILocalNotificationDateInterpretation.absoluteTime,
       );
-      debugPrint("Scheduled notification $id for $scheduledDate");
+      debugPrint("Scheduled notification $id for $scheduledDate with audio: $audioPath");
     } catch (e) {
       debugPrint("Error scheduling notification: $e");
     }
