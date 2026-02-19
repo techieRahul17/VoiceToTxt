@@ -5,6 +5,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:voicetotxtvsr/services/notification_service.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui';
+import 'package:file_picker/file_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // --- Models ---
 
@@ -48,7 +50,9 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
   final List<SavedItem> _savedItems = [];
   final TextEditingController _manualInputController = TextEditingController();
   final List<String> _userCategories = ["General", "Skills", "College", "Work", "Personal"];
+
   final TextEditingController _newCategoryController = TextEditingController();
+  String? _customAudioPath;
   
   // Animation controllers/effects are handled via flutter_animate, 
   // but we keep a simple one for the mic pulse if needed, 
@@ -58,8 +62,40 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
   void initState() {
     super.initState();
     _initSpeech();
+    _loadCustomAudio();
     NotificationService().init();
     NotificationService().requestPermissions();
+  }
+
+  Future<void> _loadCustomAudio() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _customAudioPath = prefs.getString('custom_audio_path');
+    });
+  }
+
+  Future<void> _pickNotificationSound() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.audio,
+      );
+
+      if (result != null) {
+        String path = result.files.single.path!;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('custom_audio_path', path);
+        setState(() {
+          _customAudioPath = path;
+        });
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text("Reminder sound set: ${result.files.single.name}")),
+           );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error picking file: $e");
+    }
   }
 
   @override
@@ -134,11 +170,13 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
         title: "Reminder: ${newItem.category}",
         body: newItem.text,
         scheduledDate: manualDeadline,
+        audioPath: _customAudioPath,
       );
     }
 
     setState(() {
-      _savedItems.insert(0, newItem);
+      _savedItems.add(newItem); // Add to end, then sort
+      _sortItems();
       _currentText = "";
     });
     
@@ -165,7 +203,28 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
       final index = _savedItems.indexWhere((item) => item.id == id);
       if (index != -1) {
         _savedItems[index].isCompleted = !_savedItems[index].isCompleted;
+        _sortItems();
       }
+    });
+  }
+
+  void _sortItems() {
+    _savedItems.sort((a, b) {
+      // 1. Completed items at the bottom
+      if (a.isCompleted && !b.isCompleted) return 1;
+      if (!a.isCompleted && b.isCompleted) return -1;
+
+      // 2. Items with deadlines come first (if both not completed)
+      if (a.deadline != null && b.deadline == null) return -1;
+      if (a.deadline == null && b.deadline != null) return 1;
+
+      // 3. Sort by deadline (earliest first)
+      if (a.deadline != null && b.deadline != null) {
+        return a.deadline!.compareTo(b.deadline!);
+      }
+
+      // 4. Default: Newest created first
+      return b.timestamp.compareTo(a.timestamp);
     });
   }
 
@@ -556,10 +615,13 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
                         ),
                       ),
                       // Settings or Profile placeholder
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), shape: BoxShape.circle),
-                        child: const Icon(Icons.person_outline, color: Colors.white70),
+                      GestureDetector(
+                        onTap: _pickNotificationSound,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), shape: BoxShape.circle),
+                          child: const Icon(Icons.music_note, color: Colors.white70),
+                        ),
                       )
                     ],
                   ),
@@ -768,6 +830,9 @@ class SavedItemCard extends StatelessWidget {
   const SavedItemCard({super.key, required this.item, required this.onTap});
 
   Color _getColor() {
+    if (item.isCompleted) return Colors.grey;
+    if (_isUrgent()) return const Color(0xFFFF453A); // Urgent Red
+    
     switch (item.type) {
       case ItemType.reminder: return const Color(0xFFA855F7); // Purple
       case ItemType.todo: return const Color(0xFF22D3EE); // Cyan
@@ -775,7 +840,14 @@ class SavedItemCard extends StatelessWidget {
     }
   }
 
+  bool _isUrgent() {
+     if (item.deadline == null || item.isCompleted) return false;
+     final diff = item.deadline!.difference(DateTime.now());
+     return diff.inHours < 24 && !diff.isNegative;
+  }
+
   IconData _getIcon() {
+    if (item.isCompleted) return Icons.check_circle;
     switch (item.type) {
       case ItemType.reminder: return Icons.alarm;
       case ItemType.todo: return Icons.check_circle_outline;
@@ -783,91 +855,119 @@ class SavedItemCard extends StatelessWidget {
     }
   }
 
+  String _getDeadlineText() {
+    if (item.deadline == null) return "";
+    final now = DateTime.now();
+    final diff = item.deadline!.difference(now);
+
+    if (diff.isNegative) return "Overdue";
+    if (diff.inMinutes < 60) return "Due in ${diff.inMinutes}m";
+    if (diff.inHours < 24) return "Due in ${diff.inHours}h";
+    if (diff.inDays < 7) return "Due in ${diff.inDays}d";
+    return DateFormat('MMM d').format(item.deadline!);
+  }
+
   @override
   Widget build(BuildContext context) {
     final color = _getColor();
+    final isUrgent = _isUrgent();
+    final deadlineText = _getDeadlineText();
     
     return GestureDetector(
       onTap: onTap,
-      child: GlassContainer(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            // Category Indicator / Icon
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                shape: BoxShape.circle,
+      child: AnimatedContainer(
+        duration: 300.ms,
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+           borderRadius: BorderRadius.circular(24),
+           gradient: isUrgent 
+             ? LinearGradient(
+                 colors: [color.withOpacity(0.15), Colors.transparent], 
+                 begin: Alignment.topLeft, 
+                 end: Alignment.bottomRight
+               )
+             : null,
+           boxShadow: isUrgent ? [
+             BoxShadow(color: color.withOpacity(0.2), blurRadius: 15, spreadRadius: -2)
+           ] : [],
+           border: isUrgent ? Border.all(color: color.withOpacity(0.3)) : null,
+        ),
+        child: GlassContainer(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Icon
+              AnimatedContainer(
+                duration: 300.ms,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: item.isCompleted ? Colors.white10 : color.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: item.isCompleted ? Colors.white12 : color.withOpacity(0.5), 
+                    width: 1.5
+                  ),
+                ),
+                child: Icon(_getIcon(), color: item.isCompleted ? Colors.white38 : color, size: 20),
               ),
-              child: Icon(_getIcon(), color: color, size: 20),
-            ),
-            
-            const SizedBox(width: 16),
-            
-
-            // Text Content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.text,
-                    style: GoogleFonts.outfit(
-                      color: Colors.white.withOpacity(item.isCompleted ? 0.4 : 0.9),
-                      fontSize: 16,
-                      decoration: item.isCompleted ? TextDecoration.lineThrough : null,
-                      decorationColor: Colors.white38,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "${item.type.name.toUpperCase()} • ${item.timestamp.hour}:${item.timestamp.minute.toString().padLeft(2, '0')}",
-                    style: GoogleFonts.outfit(
-                      color: Colors.white38,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  if (item.deadline != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Row(
-                        children: [
-                          Icon(Icons.access_time, size: 10, color: item.deadline!.isBefore(DateTime.now()) ? Colors.redAccent : const Color(0xFF6366F1)),
-                          const SizedBox(width: 4),
-                          Text(
-                            "Due: ${DateFormat('MMM d, h:mm a').format(item.deadline!)}",
-                            style: GoogleFonts.outfit(
-                              color: item.deadline!.isBefore(DateTime.now()) ? Colors.redAccent : const Color(0xFF6366F1),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+              
+              const SizedBox(width: 16),
+              
+              // Text Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.text,
+                      style: GoogleFonts.outfit(
+                        color: Colors.white.withOpacity(item.isCompleted ? 0.4 : 0.95),
+                        fontSize: 16,
+                        fontWeight: item.isCompleted ? FontWeight.normal : FontWeight.w500,
+                        decoration: item.isCompleted ? TextDecoration.lineThrough : null,
+                        decorationColor: Colors.white38,
                       ),
                     ),
-                ],
-              ),
-            ),
-            
-            // Checkbox (Custom) -> Only for Todo maybe? Or all for "Done" status
-            if (item.type == ItemType.todo) 
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: item.isCompleted ? color : Colors.white24, width: 2),
-                  color: item.isCompleted ? color : Colors.transparent,
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Text(
+                          "${item.type.name.toUpperCase()} • ${DateFormat('h:mm a').format(item.timestamp)}",
+                          style: GoogleFonts.outfit(
+                            color: Colors.white38,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        if (deadlineText.isNotEmpty && !item.isCompleted) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isUrgent ? color.withOpacity(0.2) : Colors.white10,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              deadlineText,
+                              style: GoogleFonts.outfit(
+                                color: isUrgent ? color : Colors.white60,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ]
+                      ],
+                    ),
+                  ],
                 ),
-                child: item.isCompleted ? const Icon(Icons.check, size: 16, color: Colors.black) : null,
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
