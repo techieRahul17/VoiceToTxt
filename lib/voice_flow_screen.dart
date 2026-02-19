@@ -574,25 +574,60 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
             top: -100,
             right: -100,
             child: Container(
-              width: 400,
-              height: 400,
+              width: 500,
+              height: 500,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: RadialGradient(colors: [const Color(0xFF6366F1).withOpacity(0.3), Colors.transparent]),
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF6366F1).withOpacity(0.4), 
+                    Colors.transparent
+                  ],
+                  radius: 0.8,
+                ),
               ),
-            ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(begin: const Offset(1, 1), end: const Offset(1.2, 1.2), duration: 4.seconds),
+            ).animate(onPlay: (c) => c.repeat(reverse: true))
+             .scale(begin: const Offset(1, 1), end: const Offset(1.5, 1.5), duration: 6.seconds)
+             .move(begin: const Offset(0, 0), end: const Offset(-50, 50), duration: 8.seconds),
           ),
           Positioned(
-            bottom: -50,
-            left: -50,
+            bottom: -150,
+            left: -100,
             child: Container(
-              width: 350,
-              height: 350,
+              width: 600,
+              height: 600,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: RadialGradient(colors: [const Color(0xFFEC4899).withOpacity(0.2), Colors.transparent]),
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFEC4899).withOpacity(0.35), 
+                    Colors.transparent
+                  ],
+                  radius: 0.8,
+                ),
               ),
-            ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(begin: 0, end: 50, duration: 5.seconds),
+            ).animate(onPlay: (c) => c.repeat(reverse: true))
+             .move(begin: const Offset(0, 0), end: const Offset(50, -50), duration: 10.seconds)
+             .scale(begin: const Offset(1, 1), end: const Offset(1.3, 1.3), duration: 7.seconds),
+          ),
+          Positioned(
+            top: 200,
+            left: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF22D3EE).withOpacity(0.2), 
+                    Colors.transparent
+                  ],
+                ),
+              ),
+            ).animate(onPlay: (c) => c.repeat(reverse: true))
+             .fadeIn(duration: 4.seconds)
+             .moveX(begin: -50, end: 150, duration: 12.seconds),
           ),
           
           // --- Main Content ---
@@ -608,21 +643,26 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
                       Text(
                         "VoiceFlow",
                         style: GoogleFonts.outfit(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 32, // Larger
+                          fontWeight: FontWeight.w800, // Bolder
                           color: Colors.white,
-                          letterSpacing: 1.2,
+                          letterSpacing: 1.5,
                         ),
-                      ),
-                      // Settings or Profile placeholder
+                      ).animate().fadeIn(duration: 800.ms).slideX(begin: -0.2, end: 0, curve: Curves.easeOut),
+                      
+                      // Settings / Custom Audio
                       GestureDetector(
                         onTap: _pickNotificationSound,
                         child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), shape: BoxShape.circle),
-                          child: const Icon(Icons.music_note, color: Colors.white70),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.08), 
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white.withOpacity(0.1)),
+                          ),
+                          child: const Icon(Icons.music_note_rounded, color: Colors.white, size: 22),
                         ),
-                      )
+                      ).animate().fadeIn(delay: 200.ms).scale()
                     ],
                   ),
                 ),
@@ -638,20 +678,68 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
                             ? Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.graphic_eq, color: Colors.white24, size: 40).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds, delay: 1.seconds),
-                                  const SizedBox(height: 10),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: List.generate(5, (index) {
+                                      return Container(
+                                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                                        width: 4,
+                                        height: 20,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white24,
+                                          borderRadius: BorderRadius.circular(2),
+                                        ),
+                                      ).animate(onPlay: (c) => c.repeat(reverse: true))
+                                       .scaleY(begin: 1.0, end: 1.5, duration: (600 + index * 100).ms, delay: (index * 100).ms);
+                                    }),
+                                  ),
+                                  const SizedBox(height: 15),
                                   Text("Tap mic to speak\nor use + for manual", style: GoogleFonts.outfit(color: Colors.white38)),
                                 ],
                               )
-                            : Text(
-                                _isListening && _currentText.isEmpty ? "Listening..." : _currentText,
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.outfit(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w300,
-                                ),
-                              ).animate().fadeIn(),
+                            : Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (_isListening)
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: List.generate(10, (index) {
+                                        return Container(
+                                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                                          width: 4,
+                                          height: 30, // Base height
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFF43F5E), // Listening color
+                                            borderRadius: BorderRadius.circular(2),
+                                            boxShadow: [
+                                              BoxShadow(color: const Color(0xFFF43F5E).withOpacity(0.5), blurRadius: 6)
+                                            ]
+                                          ),
+                                        ).animate(onPlay: (c) => c.repeat(reverse: true))
+                                         .scaleY(
+                                            begin: 0.2, 
+                                            end: 1.5 + (index % 3) * 0.5, // Random-ish variation
+                                            duration: (300 + (index * 50)).ms
+                                          );
+                                      }),
+                                    )
+                                  else
+                                    const SizedBox.shrink(),
+                                    
+                                  const SizedBox(height: 10),
+                                  
+                                  Text(
+                                    _currentText.isEmpty ? "Listening..." : _currentText,
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w300,
+                                      height: 1.3,
+                                    ),
+                                  ).animate().fadeIn(),
+                                ],
+                              ),
                       ),
                     ),
                   ),
@@ -747,45 +835,59 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
                   heroTag: "manual",
                   onPressed: _showManualInputModal,
                   backgroundColor: const Color(0xFF2C2C2E),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  child: const Icon(Icons.keyboard, color: Colors.white70),
-                ),
+                  elevation: 10,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    side: BorderSide(color: Colors.white.withOpacity(0.1))
+                  ),
+                  child: const Icon(Icons.keyboard_rounded, color: Colors.white, size: 26),
+                ).animate().scale(delay: 400.ms, curve: Curves.elasticOut),
                 
-                const SizedBox(width: 20),
+                const SizedBox(width: 30),
 
                 // Voice Input Button (Main)
                 GestureDetector(
                   onTap: _isListening ? _stopListening : _startListening,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
-                    width: 70,
-                    height: 70,
+                    curve: Curves.easeInOutBack,
+                    width: 72,
+                    height: 72,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: _isListening 
-                        ? const LinearGradient(colors: [Color(0xFFF43F5E), Color(0xFFEC4899)])
-                        : const LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF6366F1)]),
+                        ? const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFF43F5E), Color(0xFFFB7185)]
+                          )
+                        : const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF4F46E5), Color(0xFF818CF8)] // Indigo to IndigoAccent
+                          ),
                       boxShadow: [
                          BoxShadow(
-                           color: _isListening ? const Color(0xFFF43F5E).withOpacity(0.5) : const Color(0xFF3B82F6).withOpacity(0.5),
-                           blurRadius: 20,
-                           spreadRadius: 2
+                           color: _isListening ? const Color(0xFFF43F5E).withOpacity(0.6) : const Color(0xFF4F46E5).withOpacity(0.6),
+                           blurRadius: _isListening ? 30 : 20,
+                           spreadRadius: _isListening ? 4 : 0,
+                           offset: const Offset(0, 8)
                          )
                       ],
+                      border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
                     ),
                     child: Icon(
-                      _isListening ? Icons.stop : Icons.mic,
+                      _isListening ? Icons.stop_rounded : Icons.mic_rounded,
                       color: Colors.white,
-                      size: 32,
+                      size: 34,
                     ),
                   ),
                 ).animate(target: _isListening ? 1 : 0)
-                 .scaleXY(end: 1.1, curve: Curves.easeInOut)
+                 .scaleXY(end: 1.15, curve: Curves.easeInOut)
                  .animate(onPlay: (c) => c.repeat(reverse: true))
-                 .shimmer(delay: 500.ms, duration: 1500.ms), // Pulse effect
+                 .shimmer(delay: 500.ms, duration: 1500.ms, color: Colors.white54), // Pulse effect
                  
-                 const SizedBox(width: 76), // Balance the row (56 + 20)
+                 const SizedBox(width: 86), // Balance the row
               ],
             ),
           ),
@@ -812,9 +914,20 @@ class GlassContainer extends StatelessWidget {
         child: Container(
           padding: padding ?? const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.06),
+            color: Colors.white.withOpacity(0.03), // Reduced opacity for cleaner look
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.05),
+              width: 1.0,
+            ),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.08),
+                Colors.white.withOpacity(0.02),
+              ],
+            ),
           ),
           child: child,
         ),
