@@ -53,6 +53,11 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
 
   final TextEditingController _newCategoryController = TextEditingController();
   String? _customAudioPath;
+
+  // --- Pet Gamification System ---
+  int _petLevel = 1;
+  int _petExp = 0;
+  List<OverlayEntry> _xpOverlays = [];
   
   // Animation controllers/effects are handled via flutter_animate, 
   // but we keep a simple one for the mic pulse if needed, 
@@ -63,8 +68,147 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
     super.initState();
     _initSpeech();
     _loadCustomAudio();
+    _loadPetData();
     NotificationService().init();
     NotificationService().requestPermissions();
+  }
+
+  Future<void> _loadPetData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _petLevel = prefs.getInt('pet_level') ?? 1;
+      _petExp = prefs.getInt('pet_exp') ?? 0;
+    });
+  }
+
+  Future<void> _savePetData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('pet_level', _petLevel);
+    await prefs.setInt('pet_exp', _petExp);
+  }
+
+  void _addExpAndCheckLevelUp(BuildContext context) {
+    setState(() {
+      _petExp += 10;
+      int requiredExp = _petLevel * 50;
+      
+      if (_petExp >= requiredExp) {
+        _petExp -= requiredExp;
+        _petLevel++;
+        _savePetData();
+        _showLevelUpOverlay(context);
+        
+        // Vibrate or play cheer sound?
+      } else {
+        _savePetData();
+      }
+    });
+  }
+
+  void _showLevelUpOverlay(BuildContext context) {
+    if (!mounted) return;
+    
+    OverlayState? overlayState = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+    
+    overlayEntry = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          top: 100,
+          left: 0,
+          right: 0,
+          child: Material(
+            color: Colors.transparent,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "LEVEL UP!",
+                  style: GoogleFonts.outfit(
+                    fontSize: 40,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.yellowAccent,
+                    shadows: [
+                      Shadow(color: Colors.orangeAccent, blurRadius: 20),
+                      Shadow(color: Colors.white, blurRadius: 10),
+                    ]
+                  ),
+                ).animate()
+                 .scale(begin: const Offset(0.5, 0.5), end: const Offset(1.2, 1.2), duration: 600.ms, curve: Curves.elasticOut)
+                 .fadeOut(delay: 2000.ms, duration: 500.ms),
+                  
+                const SizedBox(height: 10),
+                
+                Text(
+                  "Aura Pet reached Level $_petLevel!",
+                  style: GoogleFonts.outfit(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ).animate()
+                 .slideY(begin: 0.5, end: 0, duration: 400.ms, curve: Curves.easeOut)
+                 .fadeOut(delay: 2000.ms, duration: 500.ms),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    
+    overlayState.insert(overlayEntry);
+    
+    Future.delayed(const Duration(milliseconds: 2600), () {
+      if (overlayEntry.mounted) {
+        overlayEntry.remove();
+      }
+    });
+  }
+
+  void _showFloatingXP(BuildContext context) {
+    if (!mounted) return;
+    
+    OverlayState? overlayState = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+    
+    // Slight random offset for stacking
+    final xOffset = (DateTime.now().millisecond % 40) - 20.0;
+    
+    overlayEntry = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          top: 150, // Below pet avatar
+          right: 40 + xOffset, // Below pet avatar roughly
+          child: Material(
+            color: Colors.transparent,
+            child: Text(
+              "+10 XP",
+              style: GoogleFonts.outfit(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF22D3EE),
+                shadows: [
+                  Shadow(color: const Color(0xFF22D3EE).withOpacity(0.5), blurRadius: 10),
+                ]
+              ),
+            ).animate()
+             .slideY(begin: 0, end: -2.0, duration: 1000.ms, curve: Curves.easeOut)
+             .fadeOut(delay: 500.ms, duration: 500.ms)
+             .scale(begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2), duration: 200.ms),
+          ),
+        );
+      },
+    );
+    
+    overlayState.insert(overlayEntry);
+    _xpOverlays.add(overlayEntry);
+    
+    Future.delayed(const Duration(milliseconds: 1100), () {
+      if (overlayEntry.mounted) {
+        overlayEntry.remove();
+        _xpOverlays.remove(overlayEntry);
+      }
+    });
   }
 
   Future<void> _loadCustomAudio() async {
@@ -101,6 +245,9 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
   @override
   void dispose() {
     _manualInputController.dispose();
+    for (var overlay in _xpOverlays) {
+      if (overlay.mounted) overlay.remove();
+    }
     super.dispose();
   }
 
@@ -202,7 +349,18 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
     setState(() {
       final index = _savedItems.indexWhere((item) => item.id == id);
       if (index != -1) {
-        _savedItems[index].isCompleted = !_savedItems[index].isCompleted;
+        bool wasCompleted = _savedItems[index].isCompleted;
+        _savedItems[index].isCompleted = !wasCompleted;
+        
+        if (!wasCompleted) {
+            // Task marked as complete, give XP!
+            _addExpAndCheckLevelUp(context);
+            _showFloatingXP(context);
+        } else {
+            // Optional: Remove XP if unchecked, but for Gamification, 
+            // usually better to just not give it back unless you want strict tracking.
+        }
+        
         _sortItems();
       }
     });
@@ -650,19 +808,28 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
                         ),
                       ).animate().fadeIn(duration: 800.ms).slideX(begin: -0.2, end: 0, curve: Curves.easeOut),
                       
-                      // Settings / Custom Audio
-                      GestureDetector(
-                        onTap: _pickNotificationSound,
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.08), 
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white.withOpacity(0.1)),
-                          ),
-                          child: const Icon(Icons.music_note_rounded, color: Colors.white, size: 22),
-                        ),
-                      ).animate().fadeIn(delay: 200.ms).scale()
+                      Row(
+                        children: [
+                          // Pet Avatar
+                          PetAvatar(level: _petLevel, exp: _petExp),
+                          
+                          const SizedBox(width: 15),
+
+                          // Settings / Custom Audio
+                          GestureDetector(
+                            onTap: _pickNotificationSound,
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.08), 
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                              ),
+                              child: const Icon(Icons.music_note_rounded, color: Colors.white, size: 22),
+                            ),
+                          ).animate().fadeIn(delay: 200.ms).scale(),
+                        ],
+                      )
                     ],
                   ),
                 ),
@@ -1084,3 +1251,163 @@ class SavedItemCard extends StatelessWidget {
   }
 }
 
+class PetAvatar extends StatelessWidget {
+  final int level;
+  final int exp;
+  
+  const PetAvatar({
+    super.key,
+    required this.level,
+    required this.exp,
+  });
+
+  String _getPetEmoji() {
+    if (level == 1) return "🥚"; // Egg
+    if (level == 2) return "🐣"; // Hatching
+    if (level == 3) return "🐥"; // Baby
+    if (level == 4) return "🦅"; // Bird
+    return "🐉"; // Dragon (Max)
+  }
+
+  Color _getAuraColor() {
+    if (level == 1) return Colors.white;
+    if (level == 2) return const Color(0xFFFDE047); // Yellow
+    if (level == 3) return const Color(0xFFFCD34D); // Amber
+    if (level == 4) return const Color(0xFF60A5FA); // Blue
+    return const Color(0xFFA855F7); // Purple
+  }
+
+  String _getPetName() {
+    if (level == 1) return "Aura Egg";
+    if (level == 2) return "Hatchling";
+    if (level == 3) return "Spark";
+    if (level == 4) return "Aura Bird";
+    return "Nebula Dragon";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    int requiredExp = level * 50;
+    double progress = exp / requiredExp;
+    Color auraColor = _getAuraColor();
+
+    return GestureDetector(
+      onTap: () {
+        // Optional: Show pet stats dialog
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1E1E1E),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), side: BorderSide(color: auraColor.withOpacity(0.3))),
+            title: Text("Aura Pet Status", style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_getPetEmoji(), style: const TextStyle(fontSize: 60)),
+                const SizedBox(height: 10),
+                Text(_getPetName(), style: GoogleFonts.outfit(color: auraColor, fontSize: 24, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 5),
+                Text("Level $level", style: GoogleFonts.outfit(color: Colors.white70, fontSize: 16)),
+                const SizedBox(height: 15),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 10,
+                    backgroundColor: Colors.white10,
+                    valueColor: AlwaysStoppedAnimation<Color>(auraColor),
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text("$exp / $requiredExp XP to Next Level", style: GoogleFonts.outfit(color: Colors.white54, fontSize: 12)),
+                const SizedBox(height: 15),
+                Text("Complete Tasks, Reminders, and Notes to earn XP and evolve your pet!", 
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.outfit(color: Colors.white38, fontSize: 12)
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: auraColor.withOpacity(0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: auraColor.withOpacity(0.1),
+              blurRadius: 10,
+              spreadRadius: 2,
+            )
+          ]
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Emoji Avatar with subtle floating animation
+            Container(
+              alignment: Alignment.center,
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [auraColor.withOpacity(0.3), Colors.transparent],
+                  radius: 0.8,
+                ),
+              ),
+              child: Text(
+                _getPetEmoji(),
+                style: const TextStyle(fontSize: 20),
+              ).animate(onPlay: (c) => c.repeat(reverse: true))
+               .moveY(begin: -1, end: 1, duration: 2.seconds),
+            ),
+            
+            const SizedBox(width: 8),
+            
+            // Level and Progress Bar Column
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Lv. $level",
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                // Custom mini progress bar
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white10,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: progress.clamp(0.0, 1.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: auraColor,
+                        borderRadius: BorderRadius.circular(2),
+                        boxShadow: [
+                          BoxShadow(color: auraColor.withOpacity(0.5), blurRadius: 4),
+                        ]
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
