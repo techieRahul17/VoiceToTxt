@@ -54,6 +54,9 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
   final TextEditingController _newCategoryController = TextEditingController();
   String? _customAudioPath;
 
+  // --- Navigation System ---
+  int _currentTabIndex = 0; // 0=Tasks, 1=Notes, 2=Reminders
+
   // --- Pet Gamification System ---
   int _petLevel = 1;
   int _petExp = 0;
@@ -794,21 +797,27 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
               children: [
                 // Header
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), // Slightly reduced padding
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "VoiceFlow",
-                        style: GoogleFonts.outfit(
-                          fontSize: 32, // Larger
-                          fontWeight: FontWeight.w800, // Bolder
-                          color: Colors.white,
-                          letterSpacing: 1.5,
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "VoiceFlow",
+                            style: GoogleFonts.outfit(
+                              fontSize: 28, // Slighly smaller base
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 1.2,
+                            ),
+                          ).animate().fadeIn(duration: 800.ms).slideX(begin: -0.2, end: 0, curve: Curves.easeOut),
                         ),
-                      ).animate().fadeIn(duration: 800.ms).slideX(begin: -0.2, end: 0, curve: Curves.easeOut),
+                      ),
                       
-                      Row(
+                      const SizedBox(width: 10),                      Row(
                         children: [
                           // Pet Avatar
                           PetAvatar(level: _petLevel, exp: _petExp),
@@ -922,65 +931,28 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
                   child: _savedItems.isEmpty
                       ? Center(child: Text("No items yet.", style: GoogleFonts.outfit(color: Colors.white24)))
                       : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 10, 20, 80), // Added bottom padding for FAB
+                          padding: const EdgeInsets.fromLTRB(20, 10, 20, 160), // Added bottom padding for FABs & Nav
                           physics: const BouncingScrollPhysics(),
                           itemCount: _userCategories.length,
                           itemBuilder: (context, catIndex) {
                             final category = _userCategories[catIndex];
-                            final itemsInCategory = _savedItems.where((item) => item.category == category).toList();
+                            
+                            // Filter items by category AND current tab
+                            final itemsInCategory = _savedItems.where((item) {
+                              if (item.category != category) return false;
+                              if (_currentTabIndex == 0) return item.type == ItemType.todo;
+                              if (_currentTabIndex == 1) return item.type == ItemType.note;
+                              if (_currentTabIndex == 2) return item.type == ItemType.reminder;
+                              return false;
+                            }).toList();
                             
                             if (itemsInCategory.isEmpty) return const SizedBox.shrink();
 
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 12, top: 8),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 4, 
-                                        height: 14, 
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF6366F1), 
-                                          borderRadius: BorderRadius.circular(2)
-                                        )
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        category.toUpperCase(),
-                                        style: GoogleFonts.outfit(
-                                          color: Colors.white54,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 1.5,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                ...itemsInCategory.map((item) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
-                                    child: Dismissible(
-                                      key: Key(item.id),
-                                      direction: DismissDirection.endToStart,
-                                      onDismissed: (_) => _deleteItem(item.id),
-                                      background: Container(
-                                        alignment: Alignment.centerRight,
-                                        padding: const EdgeInsets.only(right: 20),
-                                        decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
-                                        child: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                                      ),
-                                      child: SavedItemCard(
-                                        item: item,
-                                        onTap: () => _toggleItemCompletion(item.id),
-                                      ),
-                                    ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.2, end: 0),
-                                  );
-                                }),
-                                const SizedBox(height: 10),
-                              ],
+                            return CategoryFolder(
+                              category: category,
+                              items: itemsInCategory,
+                              onToggleItem: _toggleItemCompletion,
+                              onDeleteItem: _deleteItem,
                             );
                           },
                         ),
@@ -989,9 +961,9 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
             ),
           ),
           
-          // --- FABs ---
+          // --- Bottom Floating Actions ---
           Positioned(
-            bottom: 30,
+            bottom: 90, // Raised above nav bar
             left: 0,
             right: 0,
             child: Row(
@@ -1054,11 +1026,75 @@ class _VoiceFlowScreenState extends State<VoiceFlowScreen> with TickerProviderSt
                  .animate(onPlay: (c) => c.repeat(reverse: true))
                  .shimmer(delay: 500.ms, duration: 1500.ms, color: Colors.white54), // Pulse effect
                  
-                 const SizedBox(width: 86), // Balance the row
-              ],
+               ],
+            ),
+          ),
+          
+          // --- Aesthetic Bottom Navigation ---
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  height: 80,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E1E1E).withOpacity(0.6),
+                    border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildNavItem(0, Icons.check_circle_outline_rounded, "Tasks", const Color(0xFF22D3EE)),
+                      _buildNavItem(1, Icons.sticky_note_2_rounded, "Notes", const Color(0xFFF472B6)),
+                      _buildNavItem(2, Icons.notifications_none_rounded, "Reminders", const Color(0xFFA855F7)),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String label, Color tintColor) {
+    bool isSelected = _currentTabIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _currentTabIndex = index),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: 300.ms,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? tintColor.withOpacity(0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: isSelected ? Border.all(color: tintColor.withOpacity(0.3)) : Border.all(color: Colors.transparent),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? tintColor : Colors.white54,
+              size: isSelected ? 26 : 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: GoogleFonts.outfit(
+                color: isSelected ? tintColor : Colors.white54,
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1407,6 +1443,130 @@ class PetAvatar extends StatelessWidget {
             )
           ],
         ),
+      ),
+    );
+  }
+}
+
+class CategoryFolder extends StatefulWidget {
+  final String category;
+  final List<SavedItem> items;
+  final Function(String) onToggleItem;
+  final Function(String) onDeleteItem;
+
+  const CategoryFolder({
+    super.key,
+    required this.category,
+    required this.items,
+    required this.onToggleItem,
+    required this.onDeleteItem,
+  });
+
+  @override
+  State<CategoryFolder> createState() => _CategoryFolderState();
+}
+
+class _CategoryFolderState extends State<CategoryFolder> {
+  bool _isExpanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Folder Header
+          GestureDetector(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 4, 
+                    height: 18, 
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6366F1), 
+                      borderRadius: BorderRadius.circular(2)
+                    )
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      widget.category.toUpperCase(),
+                      style: GoogleFonts.outfit(
+                        color: Colors.white70,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 2.0,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white10,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      "${widget.items.length}",
+                      style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Icon(
+                    _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                    color: Colors.white54,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Folder Content
+          AnimatedCrossFade(
+            firstChild: const SizedBox(width: double.infinity, height: 0),
+            secondChild: Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+              child: Column(
+                children: widget.items.map((item) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Dismissible(
+                      key: Key(item.id),
+                      direction: DismissDirection.endToStart,
+                      onDismissed: (_) => widget.onDeleteItem(item.id),
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent.withOpacity(0.2), 
+                          borderRadius: BorderRadius.circular(20)
+                        ),
+                        child: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                      ),
+                      child: SavedItemCard(
+                        item: item,
+                        onTap: () => widget.onToggleItem(item.id),
+                      ),
+                    ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.2, end: 0),
+                  );
+                }).toList(),
+              ),
+            ),
+            crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 300),
+            sizeCurve: Curves.easeInOut,
+          ),
+        ],
       ),
     );
   }
