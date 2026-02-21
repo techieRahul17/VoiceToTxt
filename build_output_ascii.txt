@@ -1,0 +1,39 @@
+﻿
+ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ
+Γöé A new version of Flutter is available!                  Γöé
+Γöé                                                         Γöé
+Γöé To update to the latest version, run "flutter upgrade". Γöé
+ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ
+Building Windows application...                                 
+flutter : Nuget.exe not 
+found, trying to download or 
+use cached version.
+At line:1 char:1
++ flutter build windows > 
+build_output.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecifi    ed: 
+(Nuget.exe not     
+f...cached versio    
+n.:String) [], Rem    
+oteException
+    + FullyQualifiedEr    
+rorId : NativeComm    
+andError
+ 
+D:\voicetotxtvsr\windows\flut
+ter\ephemeral\.plugin_symlink
+s\flutter_local_notifications
+_windows\src\plugin.cpp(5,10)
+: error C1083: Cannot open 
+include file: 'atlbase.h': 
+No such file or directory [D:
+\voicetotxtvsr\build\windows\
+x64\plugins\flutter_local_not
+ifications_windows\shared\flu
+tter_local_notifications_wind
+ows.vcxproj]
+Building Windows application...                                    18.8s
+Build process failed.
