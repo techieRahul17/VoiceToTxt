@@ -12,6 +12,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 enum ItemType { reminder, todo, note }
 
+class SubTaskItem {
+  String text;
+  bool isCompleted;
+  
+  SubTaskItem({required this.text, this.isCompleted = false});
+}
+
+class SubTask {
+  String title;
+  List<SubTaskItem> items;
+  bool isExpanded;
+  
+  SubTask({required this.title, List<SubTaskItem>? items, this.isExpanded = true}) : items = items ?? [];
+}
+
 class SavedItem {
   final String id;
   final String text;
@@ -21,6 +36,7 @@ class SavedItem {
   final DateTime? deadline;
   final String? audioPath;
   bool isCompleted;
+  List<SubTask> subTasks;
 
   SavedItem({
     required this.id,
@@ -31,7 +47,8 @@ class SavedItem {
     this.deadline,
     this.audioPath,
     this.isCompleted = false,
-  });
+    List<SubTask>? subTasks,
+  }) : this.subTasks = subTasks ?? [];
 }
 
 // --- Main Screen ---
@@ -1139,17 +1156,25 @@ class GlassContainer extends StatelessWidget {
   }
 }
 
-class SavedItemCard extends StatelessWidget {
+class SavedItemCard extends StatefulWidget {
   final SavedItem item;
   final VoidCallback onTap;
 
   const SavedItemCard({super.key, required this.item, required this.onTap});
 
+  @override
+  State<SavedItemCard> createState() => _SavedItemCardState();
+}
+
+class _SavedItemCardState extends State<SavedItemCard> {
+  final TextEditingController _subtaskController = TextEditingController();
+  final TextEditingController _subtaskItemController = TextEditingController();
+
   Color _getColor() {
-    if (item.isCompleted) return Colors.grey;
+    if (widget.item.isCompleted) return Colors.grey;
     if (_isUrgent()) return const Color(0xFFFF453A); // Urgent Red
     
-    switch (item.type) {
+    switch (widget.item.type) {
       case ItemType.reminder: return const Color(0xFFA855F7); // Purple
       case ItemType.todo: return const Color(0xFF22D3EE); // Cyan
       case ItemType.note: return const Color(0xFFF472B6); // Pink
@@ -1157,14 +1182,14 @@ class SavedItemCard extends StatelessWidget {
   }
 
   bool _isUrgent() {
-     if (item.deadline == null || item.isCompleted) return false;
-     final diff = item.deadline!.difference(DateTime.now());
+     if (widget.item.deadline == null || widget.item.isCompleted) return false;
+     final diff = widget.item.deadline!.difference(DateTime.now());
      return diff.inHours < 24 && !diff.isNegative;
   }
 
   IconData _getIcon() {
-    if (item.isCompleted) return Icons.check_circle;
-    switch (item.type) {
+    if (widget.item.isCompleted) return Icons.check_circle;
+    switch (widget.item.type) {
       case ItemType.reminder: return Icons.alarm;
       case ItemType.todo: return Icons.check_circle_outline;
       case ItemType.note: return Icons.sticky_note_2_outlined;
@@ -1172,15 +1197,89 @@ class SavedItemCard extends StatelessWidget {
   }
 
   String _getDeadlineText() {
-    if (item.deadline == null) return "";
+    if (widget.item.deadline == null) return "";
     final now = DateTime.now();
-    final diff = item.deadline!.difference(now);
+    final diff = widget.item.deadline!.difference(now);
 
     if (diff.isNegative) return "Overdue";
     if (diff.inMinutes < 60) return "Due in ${diff.inMinutes}m";
     if (diff.inHours < 24) return "Due in ${diff.inHours}h";
     if (diff.inDays < 7) return "Due in ${diff.inDays}d";
-    return DateFormat('MMM d').format(item.deadline!);
+    return DateFormat('MMM d').format(widget.item.deadline!);
+  }
+
+  void _showAddSubTaskDialog() {
+    _subtaskController.clear();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: Text("Add Checklist", style: GoogleFonts.outfit(color: Colors.white)),
+        content: TextField(
+          controller: _subtaskController,
+          style: GoogleFonts.outfit(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: "E.g., Workout Routine",
+            hintStyle: GoogleFonts.outfit(color: Colors.white38),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel", style: GoogleFonts.outfit(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () {
+              if (_subtaskController.text.trim().isNotEmpty) {
+                setState(() {
+                  widget.item.subTasks.add(SubTask(title: _subtaskController.text.trim()));
+                });
+              }
+              Navigator.pop(context);
+            },
+            child: Text("Add", style: GoogleFonts.outfit(color: const Color(0xFF6366F1))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddSubTaskItemDialog(SubTask subTask) {
+    _subtaskItemController.clear();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: Text("Add Item to ${subTask.title}", style: GoogleFonts.outfit(color: Colors.white)),
+        content: TextField(
+          controller: _subtaskItemController,
+          style: GoogleFonts.outfit(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: "E.g., Bench Press",
+            hintStyle: GoogleFonts.outfit(color: Colors.white38),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel", style: GoogleFonts.outfit(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () {
+              if (_subtaskItemController.text.trim().isNotEmpty) {
+                setState(() {
+                  subTask.items.add(SubTaskItem(text: _subtaskItemController.text.trim()));
+                });
+              }
+              Navigator.pop(context);
+            },
+            child: Text("Add", style: GoogleFonts.outfit(color: const Color(0xFF6366F1))),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -1190,7 +1289,7 @@ class SavedItemCard extends StatelessWidget {
     final deadlineText = _getDeadlineText();
     
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: AnimatedContainer(
         duration: 300.ms,
         margin: const EdgeInsets.only(bottom: 12),
@@ -1210,75 +1309,219 @@ class SavedItemCard extends StatelessWidget {
         ),
         child: GlassContainer(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icon
-              AnimatedContainer(
-                duration: 300.ms,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: item.isCompleted ? Colors.white10 : color.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: item.isCompleted ? Colors.white12 : color.withOpacity(0.5), 
-                    width: 1.5
-                  ),
-                ),
-                child: Icon(_getIcon(), color: item.isCompleted ? Colors.white38 : color, size: 20),
-              ),
-              
-              const SizedBox(width: 16),
-              
-              // Text Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.text,
-                      style: GoogleFonts.outfit(
-                        color: Colors.white.withOpacity(item.isCompleted ? 0.4 : 0.95),
-                        fontSize: 16,
-                        fontWeight: item.isCompleted ? FontWeight.normal : FontWeight.w500,
-                        decoration: item.isCompleted ? TextDecoration.lineThrough : null,
-                        decorationColor: Colors.white38,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Icon
+                  AnimatedContainer(
+                    duration: 300.ms,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: widget.item.isCompleted ? Colors.white10 : color.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: widget.item.isCompleted ? Colors.white12 : color.withOpacity(0.5), 
+                        width: 1.5
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Row(
+                    child: Icon(_getIcon(), color: widget.item.isCompleted ? Colors.white38 : color, size: 20),
+                  ),
+                  
+                  const SizedBox(width: 16),
+                  
+                  // Text Content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "${item.type.name.toUpperCase()} • ${DateFormat('h:mm a').format(item.timestamp)}",
+                          widget.item.text,
                           style: GoogleFonts.outfit(
-                            color: Colors.white38,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1,
+                            color: Colors.white.withOpacity(widget.item.isCompleted ? 0.4 : 0.95),
+                            fontSize: 16,
+                            fontWeight: widget.item.isCompleted ? FontWeight.normal : FontWeight.w500,
+                            decoration: widget.item.isCompleted ? TextDecoration.lineThrough : null,
+                            decorationColor: Colors.white38,
                           ),
                         ),
-                        if (deadlineText.isNotEmpty && !item.isCompleted) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: isUrgent ? color.withOpacity(0.2) : Colors.white10,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              deadlineText,
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Text(
+                              "${widget.item.type.name.toUpperCase()} • ${DateFormat('h:mm a').format(widget.item.timestamp)}",
                               style: GoogleFonts.outfit(
-                                color: isUrgent ? color : Colors.white60,
+                                color: Colors.white38,
                                 fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 1,
                               ),
                             ),
-                          ),
-                        ]
+                            if (deadlineText.isNotEmpty && !widget.item.isCompleted) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isUrgent ? color.withOpacity(0.2) : Colors.white10,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  deadlineText,
+                                  style: GoogleFonts.outfit(
+                                    color: isUrgent ? color : Colors.white60,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            const Spacer(),
+                            if (!widget.item.isCompleted)
+                              GestureDetector(
+                                onTap: _showAddSubTaskDialog,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF6366F1).withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.add, size: 12, color: Color(0xFF818CF8)),
+                                      const SizedBox(width: 2),
+                                      Text("List", style: GoogleFonts.outfit(color: const Color(0xFF818CF8), fontSize: 10, fontWeight: FontWeight.bold)),
+                                    ]
+                                  )
+                                )
+                              )
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+              
+              // Subtasks Rendering
+              if (widget.item.subTasks.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.only(left: 44), // Align with text logic roughly
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: widget.item.subTasks.map((subTask) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.02),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.white.withOpacity(0.05))
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // SubTask Header
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    subTask.isExpanded = !subTask.isExpanded;
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.03),
+                                    borderRadius: BorderRadius.circular(12)
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        subTask.isExpanded ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_right_rounded,
+                                        size: 16,
+                                        color: Colors.white54
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          subTask.title,
+                                          style: GoogleFonts.outfit(
+                                            color: Colors.white70,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold
+                                          ),
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () => _showAddSubTaskItemDialog(subTask),
+                                        child: const Icon(Icons.add_circle_outline, size: 16, color: Color(0xFF22D3EE))
+                                      )
+                                    ]
+                                  )
+                                )
+                              ),
+                              
+                              // SubTask Items
+                              if (subTask.isExpanded && subTask.items.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4, bottom: 8, left: 16, right: 12),
+                                  child: Column(
+                                    children: subTask.items.map((subItem) {
+                                      return GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            subItem.isCompleted = !subItem.isCompleted;
+                                            // Ensure parent doesn't toggle
+                                          });
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 4),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 14,
+                                                height: 14,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                    color: subItem.isCompleted ? const Color(0xFF10B981) : Colors.white38,
+                                                    width: 1.5
+                                                  ),
+                                                  color: subItem.isCompleted ? const Color(0xFF10B981) : Colors.transparent
+                                                ),
+                                                child: subItem.isCompleted 
+                                                  ? const Icon(Icons.check, size: 10, color: Colors.white)
+                                                  : null,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  subItem.text,
+                                                  style: GoogleFonts.outfit(
+                                                    color: subItem.isCompleted ? Colors.white38 : Colors.white70,
+                                                    fontSize: 12,
+                                                    decoration: subItem.isCompleted ? TextDecoration.lineThrough : null,
+                                                  )
+                                                )
+                                              )
+                                            ]
+                                          )
+                                        )
+                                      );
+                                    }).toList()
+                                  )
+                                )
+                            ]
+                          )
+                        )
+                      );
+                    }).toList()
+                  )
+                )
+              ]
             ],
           ),
         ),
